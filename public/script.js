@@ -205,6 +205,23 @@ function renderCurrentCard() {
         navigateCard(1);
     };
 
+    // Helper to escape HTML for safe rendering
+    const escapeHtml = (text) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    };
+
+    // Build code snippet HTML if present
+    let codeSnippetHtml = '';
+    if (card.code && card.code.trim() !== '') {
+        codeSnippetHtml = `
+            <div class="w-full mt-4 text-left max-h-32 overflow-auto">
+                <pre class="bg-slate-900/80 rounded-lg p-3 text-sm font-mono text-emerald-300 overflow-x-auto ring-1 ring-white/5"><code>${escapeHtml(card.code)}</code></pre>
+            </div>
+        `;
+    }
+
     cardElement.innerHTML = `
             <!-- Front -->
             <div class="absolute w-full h-full bg-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center text-center backface-hidden ring-1 ring-white/10 shadow-2xl">
@@ -217,13 +234,14 @@ function renderCurrentCard() {
             </div>
             
             <!-- Back -->
-            <div class="absolute w-full h-full bg-gradient-to-br from-brand-900 to-slate-900 rounded-2xl p-8 flex flex-col items-center justify-center text-center backface-hidden rotate-y-180 ring-1 ring-white/10 shadow-2xl">
-                 <div class="flex-grow flex items-center justify-center transform rotate-[0deg]"> 
-                    <p class="text-xl text-white leading-relaxed font-medium select-none">${card.back}</p>
+            <div class="absolute w-full h-full bg-gradient-to-br from-brand-900 to-slate-900 rounded-2xl p-6 flex flex-col items-center justify-center text-center backface-hidden rotate-y-180 ring-1 ring-white/10 shadow-2xl overflow-hidden">
+                 <div class="flex-grow flex flex-col items-center justify-center w-full transform rotate-[0deg] overflow-auto"> 
+                    <p class="text-lg text-white leading-relaxed font-medium select-none">${card.back}</p>
+                    ${codeSnippetHtml}
                 </div>
                  
                  <!-- On-card Next Button for seamless mouse usage -->
-                 <button class="next-card-btn mt-6 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold py-3 px-8 rounded-full transition-all flex items-center gap-2 backdrop-blur-sm shadow-lg ring-1 ring-white/10 group-hover:bg-brand-500 group-hover:shadow-brand-500/50">
+                 <button class="next-card-btn mt-4 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold py-3 px-8 rounded-full transition-all flex items-center gap-2 backdrop-blur-sm shadow-lg ring-1 ring-white/10 group-hover:bg-brand-500 group-hover:shadow-brand-500/50 shrink-0">
                     Next Card <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                  </button>
             </div>

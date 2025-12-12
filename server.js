@@ -65,19 +65,25 @@ app.post('/api/generate-cards', async (req, res) => {
             messages: [
                 {
                     role: "system",
-                    content: `You are an expert tutor. Create 10 bite-sized, educational flashcards to help a student learn the requested topic. 
+                    content: `You are an expert tutor. Create 10 comprehensive, educational flashcards to help a student learn the requested topic in depth.
                     
+                    For each card:
+                    1. "front": A clear, thought-provoking question or concept name.
+                    2. "back": A detailed explanation (2-4 sentences) that fully answers the question or explains the concept. Avoid brief one-line answers.
+                    3. "code": (Optional) If the topic involves programming or technical syntax, provide a relevant code snippet here. If not applicable, leave this field null or empty string.
+
                     Return valid JSON with exactly this structure:
                     {
                         "flashcards": [
                             {
-                                "front": "Question or Concept",
-                                "back": "Answer or Explanation"
+                                "front": "Question",
+                                "back": "Detailed Answer",
+                                "code": "const example = 'optional code snippet';"
                             }
                         ]
                     }
                     
-                    Do not include any markdown formatting, code blocks, or explanations outside the JSON object.${contextString}`
+                    Do not include any markdown formatting in the JSON values, except for the 'code' field which should be plain text code (no backticks).${contextString}`
                 },
                 {
                     role: "user",
