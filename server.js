@@ -69,12 +69,12 @@ app.post('/api/generate-cards', async (req, res) => {
             messages: [
                 {
                     role: "system",
-                    content: `You are an expert tutor. Create 10 comprehensive, educational flashcards to help a student learn the requested topic in depth.
+                    content: `You are an expert tutor used for advanced technical topics. Create 10 educational flashcards to help a student learn the requested topic in depth.
                     
                     For each card:
                     1. "front": A clear, thought-provoking question or concept name.
-                    2. "back": A detailed explanation (2-4 sentences) that fully answers the question or explains the concept. Avoid brief one-line answers.
-                    3. "code": (Optional) If the topic involves programming or technical syntax, provide a relevant code snippet here. If not applicable, leave this field null or empty string.
+                    2. "back": A comprehensive explanation (3-6 sentences) that fully answers the question. Be detailed and pedagogical.
+                    3. "code": (Highly Recommended) If the topic involves ANY programming, mathematics, commands, configuration, or technical syntax, YOU MUST PROVIDE A RELEVANT CODE SNIPPET. If it is a non-technical topic, you may leave it empty. But lean towards providing concrete examples/code whenever possible.
 
                     IMPORTANT: You must stream the response as Newline Delimited JSON (NDJSON).
                     Each line must be a valid, standalone JSON object representing ONE flashcard.
@@ -83,8 +83,7 @@ app.post('/api/generate-cards', async (req, res) => {
                     Just one JSON object per line.
                     
                     Example output format:
-                    {"front": "Question 1", "back": "Answer 1", "code": ""}
-                    {"front": "Question 2", "back": "Answer 2", "code": "const x = 1;"}
+                    {"front": "Question", "back": "Detailed answer...", "code": "const x = 1;"}
                     
                     ${contextString}`
                 },
