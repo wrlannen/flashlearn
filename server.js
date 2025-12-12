@@ -53,14 +53,18 @@ app.post('/api/generate-cards', async (req, res) => {
         }
 
         const model = process.env.OPENAI_MODEL || "gpt-4o";
-        console.log(`Calling OpenAI API with model: ${model}`);
+        console.log(`Calling OpenAI API with model: ${model} (Streaming)`);
 
         let contextString = "";
         if (context && Array.isArray(context) && context.length > 0) {
             contextString = `\n\nIMPORTANT: The student has already studied the following concepts. Do NOT generate cards for these exact concepts again. Instead, focus on related but new concepts, advanced details, or different aspects of the topic:\n${context.join(', ')}`;
         }
 
-        const completion = await openai.chat.completions.create({
+        // Set headers for streaming
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Transfer-Encoding', 'chunked');
+
+        const stream = await openai.chat.completions.create({
             model: model,
             messages: [
                 {
@@ -72,75 +76,84 @@ app.post('/api/generate-cards', async (req, res) => {
                     2. "back": A detailed explanation (2-4 sentences) that fully answers the question or explains the concept. Avoid brief one-line answers.
                     3. "code": (Optional) If the topic involves programming or technical syntax, provide a relevant code snippet here. If not applicable, leave this field null or empty string.
 
-                    Return valid JSON with exactly this structure:
-                    {
-                        "flashcards": [
-                            {
-                                "front": "Question",
-                                "back": "Detailed Answer",
-                                "code": "const example = 'optional code snippet';"
-                            }
-                        ]
-                    }
+                    IMPORTANT: You must stream the response as Newline Delimited JSON (NDJSON).
+                    Each line must be a valid, standalone JSON object representing ONE flashcard.
+                    Do not wrap the result in a list or an object "flashcards".
+                    Do not return markdown formatting (like \`\`\`json).
+                    Just one JSON object per line.
                     
-                    Do not include any markdown formatting in the JSON values, except for the 'code' field which should be plain text code (no backticks).${contextString}`
+                    Example output format:
+                    {"front": "Question 1", "back": "Answer 1", "code": ""}
+                    {"front": "Question 2", "back": "Answer 2", "code": "const x = 1;"}
+                    
+                    ${contextString}`
                 },
                 {
                     role: "user",
                     content: `Generate flashcards for the topic: ${topic}`
                 }
             ],
-            response_format: { type: "json_object" }
+            stream: true,
         });
 
-        console.log('OpenAI API call successful');
+        console.log('OpenAI stream started');
 
-        if (!completion.choices || completion.choices.length === 0) {
-            console.error('Unexpected OpenAI response structure: choices array missing or empty', JSON.stringify(completion, null, 2));
-            throw new Error('Invalid response from OpenAI');
+        let buffer = "";
+
+        for await (const chunk of stream) {
+            const content = chunk.choices[0]?.delta?.content || "";
+            buffer += content;
+
+            // Process buffer for newlines to check for complete JSON objects
+            let newlineIndex;
+            while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+                const line = buffer.slice(0, newlineIndex).trim();
+                buffer = buffer.slice(newlineIndex + 1);
+
+                if (line) {
+                    try {
+                        // Check if it's potentially valid JSON (starts with {)
+                        // This handles cases where the model might output extra text or markdown code blocks occasionally
+                        const cleanedLine = line.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                        if (cleanedLine.startsWith('{')) {
+                            // Verify it parses before sending
+                            JSON.parse(cleanedLine);
+                            res.write(cleanedLine + "\n");
+                        }
+                    } catch (e) {
+                        // Incomplete or invalid JSON line, might be part of a larger object usually not if prompts obeyed 
+                        // or just noise. For now, we assume strict one-line JSONs due to prompt.
+                        console.warn('Skipping invalid JSON line:', line);
+                    }
+                }
+            }
         }
 
-        // Handle potential markdown code blocks in response if model is chatty, though system prompt forbids it.
-        let content = completion.choices[0].message.content;
-        console.log('Raw content received from OpenAI:', content);
-
-        content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-        console.log('Content after cleaning markdown:', content);
-
-        console.log('Attempting to parse JSON content...');
-        const parsedContent = JSON.parse(content);
-
-        // Extract array from the expected structure
-        let flashcards = [];
-
-        if (Array.isArray(parsedContent)) {
-            flashcards = parsedContent;
-        } else if (parsedContent.flashcards && Array.isArray(parsedContent.flashcards)) {
-            flashcards = parsedContent.flashcards;
-        } else if (parsedContent.cards && Array.isArray(parsedContent.cards)) {
-            flashcards = parsedContent.cards;
-        } else {
-            // Fallback: if it's a single object that looks like a card, wrap it
-            console.warn('Unknown JSON structure, attempting to wrap single object');
-            flashcards = [parsedContent];
+        // Handle any remaining buffer
+        if (buffer.trim()) {
+            try {
+                const cleanedLine = buffer.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                if (cleanedLine.startsWith('{')) {
+                    JSON.parse(cleanedLine);
+                    res.write(cleanedLine + "\n");
+                }
+            } catch (e) {
+                console.warn('Final buffer content was not valid JSON:', buffer);
+            }
         }
 
-        if (!Array.isArray(flashcards)) {
-            // Second fallback: force array if something extremely weird happened
-            flashcards = [];
-        }
-
-        console.log(`Successfully parsed ${flashcards.length} flashcards`);
-
-        res.json(flashcards);
+        res.end();
+        console.log('Stream completed');
 
     } catch (error) {
         console.error('CRITICAL ERROR in /api/generate-cards:', error);
-        if (error.response) {
-            console.error('OpenAI API Response Error Data:', error.response.data);
-            console.error('OpenAI API Response Status:', error.response.status);
+        // If headers haven't been sent, send error JSON
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to generate flashcards', details: error.message });
+        } else {
+            // Stream was already open, just end it; client will handle truncated stream
+            res.end();
         }
-        res.status(500).json({ error: 'Failed to generate flashcards', details: error.message });
     }
 });
 

@@ -53,6 +53,7 @@ async function generateCards(isAppend = false) {
         `;
     } else {
         generateBtn.disabled = true;
+        // Show loading initially
         loadingIndicator.classList.remove('hidden');
     }
 
@@ -72,39 +73,94 @@ async function generateCards(isAppend = false) {
 
         if (!response.ok) throw new Error('Failed to generate cards');
 
-        const newCards = await response.json();
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let isFirstCard = true;
+        let newCardsCount = 0;
 
-        if (isAppend) {
-            flashcardsData = [...flashcardsData, ...newCards];
-            // currentIndex is already at the end (where the "More" card was), 
-            // so we just stay there or move to the first new card?
-            // Let's move to the first new card.
-            // currentIndex is currently equal to old length (because we were at the "End" screen)
-            // So rendering current card should show the first new card.
-            renderCurrentCard();
-        } else {
-            flashcardsData = newCards;
-            currentIndex = 0;
-            if (flashcardsData.length > 0) {
-                renderCurrentCard();
-                // UI Transition: Hide input container completely
-                inputContainer.classList.add('hidden');
-                cardsWrapper.classList.remove('hidden');
-                setTimeout(() => {
-                    cardsWrapper.classList.remove('opacity-0');
-                }, 50);
-                resetBtn.classList.remove('hidden');
-            } else {
-                alert('No cards were generated. Please try a different topic.');
+        // Loop to read the stream
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+
+            // Process chunks
+            let newlineIndex;
+            while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+                const line = buffer.slice(0, newlineIndex).trim();
+                buffer = buffer.slice(newlineIndex + 1);
+
+                if (line) {
+                    try {
+                        const card = JSON.parse(line);
+
+                        // Add to data
+                        flashcardsData.push(card);
+                        newCardsCount++;
+
+                        // Determine behavior based on state
+                        if (isAppend) {
+                            // If appending, we might already be on the "End" screen or viewing the last card
+                            // If we collected a new card, we can show it immediately if we were on the loader
+                            if (newCardsCount === 1) {
+                                // We were showing the "Expanding..." loader at currentIndex
+                                // currentIndex is likely where the new card should be
+                                // Actually, if we appended, currentIndex was at data.length (end screen)
+                                // So renderCurrentCard should now show this new card
+                                renderCurrentCard();
+                            } else {
+                                // Background update of counters
+                                cardCounter.textContent = `${currentIndex + 1} / ${flashcardsData.length}`;
+                            }
+                        } else {
+                            // New generation
+                            if (isFirstCard) {
+                                isFirstCard = false;
+                                currentIndex = 0;
+                                loadingIndicator.classList.add('hidden');
+                                inputContainer.classList.add('hidden');
+                                cardsWrapper.classList.remove('hidden');
+                                setTimeout(() => {
+                                    cardsWrapper.classList.remove('opacity-0');
+                                }, 50);
+                                resetBtn.classList.remove('hidden');
+                                // Render the first card immediately
+                                renderCurrentCard();
+                            } else {
+                                // Just update the counter usually, or let the user navigate to it
+                                // If the user is staring at card 1, update counter to "1 / X"
+                                cardCounter.textContent = `${currentIndex + 1} / ${flashcardsData.length}`;
+                            }
+                        }
+
+                    } catch (e) {
+                        console.warn('Error parsing JSON line from stream:', e);
+                    }
+                }
             }
+        }
+
+        if (newCardsCount === 0 && !isAppend) {
+            throw new Error('No cards generated');
         }
 
     } catch (error) {
         console.error(error);
-        alert('Something went wrong. Please check your network or API key.');
+
         if (isAppend) {
-            // Restore "End" screen on failure
+            alert('Could not generate more cards. Please try again.');
             showEndScreen();
+        } else {
+            alert('Something went wrong. Please check your network or API key.');
+            loadingIndicator.classList.add('hidden');
+            generateBtn.disabled = false;
+            // Reset UI if it failed completely before showing anything
+            if (flashcardsData.length === 0) {
+                cardsWrapper.classList.add('hidden');
+                inputContainer.classList.remove('hidden');
+            }
         }
     } finally {
         generateBtn.disabled = false;
