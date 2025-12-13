@@ -284,12 +284,27 @@ function renderCurrentCard() {
         ).join('');
     };
 
+    // Helper to stop flip when clicking specific elements
+    const stopPropagation = (e) => {
+        e.stopPropagation();
+    };
+
     // Build code snippet HTML if present
     let codeSnippetHtml = '';
     if (card.code && card.code.trim() !== '') {
+        // Use a unique ID for targeting if needed, but relative DOM navigation is safer for generated content
         codeSnippetHtml = `
-            <div class="w-full mt-6 text-left max-h-48 overflow-auto">
-                <pre class="bg-slate-900/80 rounded-lg p-4 text-base font-mono text-emerald-300 overflow-x-auto ring-1 ring-white/5"><code>${escapeHtml(card.code)}</code></pre>
+            <div class="w-full mt-6 text-left relative group/code">
+                <div class="code-container relative max-h-32 overflow-hidden transition-all duration-500 ease-in-out bg-slate-900/80 rounded-lg ring-1 ring-white/5">
+                    <pre class="p-4 text-base font-mono text-emerald-300 overflow-x-auto"><code>${escapeHtml(card.code)}</code></pre>
+                    
+                    <!-- Gradient Overlay (visible when collapsed) -->
+                    <div class="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-slate-900/90 to-transparent pointer-events-none transition-opacity duration-300 code-overlay"></div>
+                </div>
+                
+                <button class="expand-code-btn absolute -bottom-3 left-1/2 -translate-x-1/2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold py-1 px-3 rounded-full shadow-lg ring-1 ring-white/10 transition-all opacity-0 group-hover/code:opacity-100 focus:opacity-100 translate-y-2 group-hover/code:translate-y-0">
+                    Show more
+                </button>
             </div>
         `;
     }
@@ -307,7 +322,7 @@ function renderCurrentCard() {
             
             <!-- Back -->
             <div class="absolute w-full h-full bg-gradient-to-br from-brand-900 to-slate-900 rounded-2xl p-10 flex flex-col items-center justify-center text-center backface-hidden rotate-y-180 ring-1 ring-white/10 shadow-2xl overflow-hidden">
-                 <div class="flex-grow flex flex-col items-center justify-center w-full transform rotate-[0deg] overflow-auto"> 
+                 <div class="flex-grow flex flex-col items-center justify-center w-full transform rotate-[0deg] overflow-auto hide-scrollbar"> 
                     <div class="text-left w-full">
                         ${formatParagraphs(card.back)}
                     </div>
@@ -329,6 +344,33 @@ function renderCurrentCard() {
     // Attach specific handler for the button inside
     const nextBtnInternal = cardElement.querySelector('.next-card-btn');
     if (nextBtnInternal) nextBtnInternal.onclick = handleNextClick;
+
+    // Attach handlers for code expansion
+    const expandBtn = cardElement.querySelector('.expand-code-btn');
+    const codeContainer = cardElement.querySelector('.code-container');
+    const codeOverlay = cardElement.querySelector('.code-overlay');
+
+    if (expandBtn && codeContainer) {
+        expandBtn.onclick = (e) => {
+            e.stopPropagation(); // Prevent flip
+            const isExpanded = codeContainer.style.maxHeight === 'none';
+
+            if (isExpanded) {
+                codeContainer.style.maxHeight = ''; // Revert to CSS default (max-h-32)
+                codeContainer.classList.add('max-h-32'); // Ensure class applies
+                expandBtn.textContent = 'Show more';
+                codeOverlay.classList.remove('opacity-0');
+            } else {
+                codeContainer.style.maxHeight = 'none';
+                codeContainer.classList.remove('max-h-32');
+                expandBtn.textContent = 'Show less';
+                codeOverlay.classList.add('opacity-0');
+            }
+        };
+
+        // Also prevent flip when clicking strictly on the code area (so user can copy text)
+        codeContainer.onclick = stopPropagation;
+    }
 
     cardsContainer.appendChild(cardElement);
 }

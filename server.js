@@ -99,9 +99,13 @@ app.post('/api/generate-cards', async (req, res) => {
 
         let buffer = "";
 
+        let cardCount = 0;
         for await (const chunk of stream) {
             const content = chunk.choices[0]?.delta?.content || "";
-            buffer += content;
+            if (content) {
+                // console.log(`Received chunk of length: ${content.length}`);
+                buffer += content;
+            }
 
             // Process buffer for newlines to check for complete JSON objects
             let newlineIndex;
@@ -110,19 +114,24 @@ app.post('/api/generate-cards', async (req, res) => {
                 buffer = buffer.slice(newlineIndex + 1);
 
                 if (line) {
+                    console.log(`Processing line length: ${line.length}`);
                     try {
                         // Check if it's potentially valid JSON (starts with {)
                         // This handles cases where the model might output extra text or markdown code blocks occasionally
                         const cleanedLine = line.replace(/^```json\s*/, '').replace(/\s*```$/, '');
                         if (cleanedLine.startsWith('{')) {
                             // Verify it parses before sending
-                            JSON.parse(cleanedLine);
+                            const parsed = JSON.parse(cleanedLine);
+                            console.log(`Successfully parsed card #${++cardCount}: "${parsed.front?.substring(0, 30)}..."`);
                             res.write(cleanedLine + "\n");
+                        } else {
+                            console.log('Skipping line (not starting with {):', line.substring(0, 50) + "...");
                         }
                     } catch (e) {
                         // Incomplete or invalid JSON line, might be part of a larger object usually not if prompts obeyed 
                         // or just noise. For now, we assume strict one-line JSONs due to prompt.
-                        console.warn('Skipping invalid JSON line:', line);
+                        console.warn('Skipping invalid JSON line:', line.substring(0, 100));
+                        console.warn('Parse error:', e.message);
                     }
                 }
             }
@@ -130,11 +139,15 @@ app.post('/api/generate-cards', async (req, res) => {
 
         // Handle any remaining buffer
         if (buffer.trim()) {
+            console.log('Processing final buffer content...');
             try {
                 const cleanedLine = buffer.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
                 if (cleanedLine.startsWith('{')) {
                     JSON.parse(cleanedLine);
+                    console.log(`Successfully parsed final card #${++cardCount}`);
                     res.write(cleanedLine + "\n");
+                } else {
+                    console.log('Final buffer content skipped (not JSON)');
                 }
             } catch (e) {
                 console.warn('Final buffer content was not valid JSON:', buffer);
