@@ -399,18 +399,10 @@ function renderCurrentCard() {
     let codeSnippetHtml = '';
     if (card.code && card.code.trim() !== '') {
         codeSnippetHtml = `
-            <div class="code-wrapper w-full mt-6 text-left relative group/code cursor-pointer">
-                <!-- Code Preview - now scrollable -->
-                <div class="code-container relative max-h-48 overflow-y-auto bg-slate-900/80 rounded-lg ring-1 ring-white/5 transition-all duration-300 group-hover/code:ring-brand-500/30 group-hover/code:shadow-lg group-hover/code:shadow-brand-500/10">
+            <div class="code-wrapper w-full mt-6 text-left">
+                <!-- Code Preview - scrollable -->
+                <div class="code-container relative max-h-48 overflow-y-auto bg-slate-900/80 rounded-lg ring-1 ring-white/5">
                     <pre class="p-4 text-sm font-mono text-emerald-300 whitespace-pre-wrap break-words"><code>${escapeHtml(card.code)}</code></pre>
-                </div>
-                
-                <!-- Centered Hover Overlay -->
-                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover/code:opacity-100 transition-opacity duration-200 pointer-events-none">
-                    <button class="expand-code-btn bg-brand-600 hover:bg-brand-500 text-white text-sm font-bold py-2 px-6 rounded-full shadow-xl ring-1 ring-white/20 transform scale-95 group-hover/code:scale-105 transition-all duration-200 flex items-center gap-2 pointer-events-auto">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
-                        Expand
-                    </button>
                 </div>
             </div>
         `;
@@ -452,49 +444,9 @@ function renderCurrentCard() {
     const nextBtnInternal = cardElement.querySelector('.next-card-btn');
     if (nextBtnInternal) nextBtnInternal.onclick = handleNextClick;
 
-    // Attach handlers for code expansion
-    const expandBtn = cardElement.querySelector('.expand-code-btn');
-    const cardBack = cardElement.querySelector('.card-back');
-
-    if (expandBtn && cardBack) {
-        expandBtn.onclick = (e) => {
-            e.stopPropagation(); // Prevent flip
-
-            // Create full-card code overlay
-            const codeOverlay = document.createElement('div');
-            codeOverlay.className = 'code-fullscreen absolute inset-0 z-50 bg-slate-900 rounded-2xl p-6 flex flex-col text-left';
-            codeOverlay.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-slate-400 text-sm font-medium uppercase tracking-wide">Code Snippet</span>
-                    <button class="close-code-btn bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold py-2 px-4 rounded-full shadow-lg ring-1 ring-white/10 transition-all flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        Close
-                    </button>
-                </div>
-                <div class="flex-grow overflow-auto rounded-lg bg-slate-800/50 ring-1 ring-white/5">
-                    <pre class="p-4 text-sm font-mono text-emerald-300 whitespace-pre-wrap break-words h-full"><code>${escapeHtml(card.code)}</code></pre>
-                </div>
-            `;
-
-            // Add close handler
-            const closeBtn = codeOverlay.querySelector('.close-code-btn');
-            closeBtn.onclick = (e) => {
-                e.stopPropagation();
-                codeOverlay.remove();
-            };
-
-            // Prevent flip when clicking overlay
-            codeOverlay.onclick = (e) => e.stopPropagation();
-
-            // Add to card back
-            cardBack.appendChild(codeOverlay);
-        };
-
-        // Prevent flip when clicking on the code container
-        const codeContainer = cardElement.querySelector('.code-container');
-        if (codeContainer) codeContainer.onclick = stopPropagation;
-        expandBtn.onclick && (expandBtn.parentElement.onclick = stopPropagation);
-    }
+    // Prevent flip when clicking on the code container to allow scrolling
+    const codeContainer = cardElement.querySelector('.code-container');
+    if (codeContainer) codeContainer.onclick = stopPropagation;
 
     cardsContainer.appendChild(cardElement);
 }
