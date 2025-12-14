@@ -42,3 +42,18 @@ body {
 .touch-pan-y {
     touch-action: pan-y;
 }
+
+/* Mobile card content fixes */
+@media (max-width: 640px) {
+    /* Fix vertical centering - align content to top on mobile */
+    .card-back .flex-grow {
+        justify-content: flex-start !important;
+        padding-top: 0.5rem;
+    }
+    
+    /* Reduce card padding on mobile */
+    .card-back,
+    .backface-hidden {
+        padding: 1.25rem !important;
+    }
+}
