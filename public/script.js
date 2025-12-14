@@ -400,9 +400,9 @@ function renderCurrentCard() {
     if (card.code && card.code.trim() !== '') {
         codeSnippetHtml = `
             <div class="code-wrapper w-full mt-6 text-left relative group/code cursor-pointer">
-                <!-- Code Preview -->
-                <div class="code-container relative max-h-36 overflow-hidden bg-slate-900/80 rounded-lg ring-1 ring-white/5 transition-all duration-300 group-hover/code:ring-brand-500/30 group-hover/code:shadow-lg group-hover/code:shadow-brand-500/10">
-                    <pre class="p-4 text-sm font-mono text-emerald-300 whitespace-pre-wrap break-words opacity-80 group-hover/code:opacity-30 transition-opacity duration-300"><code>${escapeHtml(card.code)}</code></pre>
+                <!-- Code Preview - now scrollable -->
+                <div class="code-container relative max-h-48 overflow-y-auto bg-slate-900/80 rounded-lg ring-1 ring-white/5 transition-all duration-300 group-hover/code:ring-brand-500/30 group-hover/code:shadow-lg group-hover/code:shadow-brand-500/10">
+                    <pre class="p-4 text-sm font-mono text-emerald-300 whitespace-pre-wrap break-words"><code>${escapeHtml(card.code)}</code></pre>
                 </div>
                 
                 <!-- Centered Hover Overlay -->
