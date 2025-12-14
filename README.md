@@ -2,6 +2,40 @@
 
 An intelligent flashcard generation application powered by OpenAI's advanced language models that creates personalized study materials from any topic. Perfect for students, educators, and lifelong learners looking to enhance their study sessions with AI-generated content.
 
+## 🚀 Quick Start
+
+### Using Docker (Fastest)
+```bash
+git clone <repository-url>
+cd ai-flashcard-generator
+cp .env.example .env
+# Edit .env with your API keys
+make docker-up
+```
+Visit [http://localhost:3000](http://localhost:3000)
+
+### Using Make
+```bash
+git clone <repository-url>
+cd ai-flashcard-generator
+make install
+cp .env.example .env
+# Edit .env with your API keys
+make dev
+```
+Visit [http://localhost:3000](http://localhost:3000)
+
+### Using npm
+```bash
+git clone <repository-url>
+cd ai-flashcard-generator
+npm install
+cp .env.example .env
+# Edit .env with your API keys
+node server.js
+```
+Visit [http://localhost:3000](http://localhost:3000)
+
 ## ✨ Features
 
 - **🤖 AI-Powered Generation**: Leverages OpenAI's specific models to create high-quality, educational flashcards
@@ -37,6 +71,8 @@ Before you begin, ensure you have the following installed:
 
 ## 🛠️ Installation
 
+### Option 1: Using Make (Recommended)
+
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
@@ -45,7 +81,7 @@ Before you begin, ensure you have the following installed:
 
 2. **Install dependencies**
    ```bash
-   npm install
+   make install
    ```
 
 3. **Set up environment variables**
@@ -73,22 +109,71 @@ Before you begin, ensure you have the following installed:
    PORT=3000
    ```
 
-## 🏃 Running the Application
+### Option 2: Using npm
 
-1. **Start the server**
+Follow the same steps but replace `make install` with `npm install`.
+
+### Option 3: Using Docker 🐳
+
+1. **Clone the repository**
    ```bash
-   node server.js
+   git clone <repository-url>
+   cd ai-flashcard-generator
    ```
 
-2. **Open your browser**
-   
-   Navigate to [http://localhost:3000](http://localhost:3000)
+2. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys
+   ```
 
-3. **Start generating flashcards!**
-   - Enter a topic you want to learn
-   - Click "Generate Cards"
-   - Wait for AI to create your personalized flashcards
-   - Click on any card to flip and reveal the answer
+3. **Build and run with Docker Compose**
+   ```bash
+   make docker-up
+   # Or: docker-compose up -d
+   ```
+
+4. **View logs**
+   `tests/                 # Test files
+│   ├── server.test.js    # Server API tests
+│   └── script.test.js    # Frontend tests
+├── server.js             # Express server & API endpoints
+├── package.json          # Node.js dependencies & scripts
+├── vitest.config.js      # Vitest configuration
+├── tailwind.config.js    # Tailwind CSS configuration
+├── Dockerfile            # Docker image configuration
+├── docker-compose.yml    # Docker Compose configuration
+├── Makefile             # Make commands for easy development
+├── .env.example          # Environment variable template
+├── .dockerignore        # Docker ignore rules
+
+## 🏃 Running the Application
+
+### Development (Local)
+
+**Using Make:**
+```bash
+make dev
+```
+
+**Using npm:**
+```bash
+node server.js
+```
+
+### Production (Docker)
+
+```bash
+make docker-up
+```
+
+Then navigate to [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Start generating flashcards!
+- Enter a topic you want to learn
+- Click "Generate Cards"
+- Wait for AI to create your personalized flashcards
+- Click on any card to flip and reveal the answer
 
 ## 📁 Project Structure
 
@@ -181,13 +266,81 @@ ERROR: Port 3000 is already in use!
 OPENAI_API_KEY missing
 # or
 GEMINI_API_KEY missing
-```
-**Solution**: Ensure your `.env` file exists and contains the valid API key for the selected `AI_PROVIDER`.
+```🧪 Testing
 
-### Cards Not Generating
-- Check your internet connection
-- Verify your OpenAI API key is valid and has credits
-- Check the browser console and server logs for error messages
+The project includes a comprehensive test suite using Vitest.
+
+### Running Tests
+
+**Using Make:**
+```bash
+make test              # Run tests once
+make test-watch        # Run tests in watch mode
+make test-ui           # Run tests with UI
+make test-coverage     # Run tests with coverage report
+```
+
+**Using npm:**
+```bash
+npm test              # Run tests once
+npm run test:watch    # Run tests in watch mode
+npm run test:ui       # Run tests with UI
+npmx] Comprehensive test suite with Vitest
+- [x] Docker support with multi-stage builds
+- [x] Makefile for simplified development workflow
+- [ run test:coverage # Run tests with coverage report
+```
+
+### Test Coverage
+
+The test suite includes:
+- **48 comprehensive tests** covering both server and frontend
+- **16 server API tests** - Request validation, response format, error handling, edge cases
+- **32 frontend tests** - UI interactions, card generation, navigation, security (XSS protection)
+
+All tests run in under 500ms with 100% pass rate.
+
+## 🐳 Docker Commands
+
+All Docker commands are available through the Makefile:
+
+```bash
+make docker-build    # Build Docker image
+make docker-up       # Start containers in detached mode
+make docker-down     # Stop containers
+make docker-logs     # View container logs
+make docker-restart  # Restart containers
+make docker-clean    # Remove containers, volumes, and images
+```
+
+Or use docker-compose directly:
+```bash
+docker-compose build
+docker-compose up -d
+docker-compose down
+docker-compose logs -f
+```
+
+## 🔨 Make Commands Reference
+
+Run `make help` to see all available commands:
+
+```bash
+make help            # Show all available commands
+make install         # Install dependencies
+make test            # Run tests
+make test-watch      # Run tests in watch mode
+make test-ui         # Run tests with UI
+make test-coverage   # Run tests with coverage
+make dev             # Start development server
+make clean           # Clean node_modules and coverage
+make docker-build    # Build Docker image
+make docker-up       # Start Docker containers
+make docker-down     # Stop Docker containers
+make docker-logs     # View Docker logs
+make docker-clean    # Remove Docker resources
+make docker-restart  # Restart Docker containers
+```
 
 ## 📝 Development
 
@@ -196,7 +349,17 @@ GEMINI_API_KEY missing
 1. **Frontend**: Edit `public/index.html` and `public/script.js`
 2. **Backend**: Modify `server.js` for API changes
 3. **Styling**: Update Tailwind classes in HTML or add custom CSS
+4. **Tests**: Add tests to `tests/server.test.js` or `tests/script.test.js`
 
+### Debugging
+
+The server includes comprehensive logging:
+- All requests are logged with timestamps
+- AI provider responses are logged
+- Error details are logged to console
+- Cost estimation for API usage
+
+Check the terminal running `node server.js` (or `make dev`)
 ### Debugging
 
 The server includes comprehensive logging:

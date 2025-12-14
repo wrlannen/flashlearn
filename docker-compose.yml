@@ -1,0 +1,34 @@
+services:
+  flashcard-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-flashcard-generator
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - AI_PROVIDER=${AI_PROVIDER:-openai}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - OPENAI_INPUT_COST_PER_MILLION=${OPENAI_INPUT_COST_PER_MILLION:-2.50}
+      - OPENAI_OUTPUT_COST_PER_MILLION=${OPENAI_OUTPUT_COST_PER_MILLION:-10.00}
+      - GEMINI_INPUT_COST_PER_MILLION=${GEMINI_INPUT_COST_PER_MILLION:-0.10}
+      - GEMINI_OUTPUT_COST_PER_MILLION=${GEMINI_OUTPUT_COST_PER_MILLION:-0.40}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - flashcard-network
+
+networks:
+  flashcard-network:
+    driver: bridge
