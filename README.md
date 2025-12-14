@@ -11,7 +11,7 @@ An intelligent flashcard generation application powered by advanced AI models (O
 ### Using Docker (Fastest)
 ```bash
 git clone <repository-url>
-cd ai-flashcard-generator
+cd flashlearn
 cp .env.example .env
 # Edit .env with your API keys
 make docker-up
@@ -21,7 +21,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 ### Using Make
 ```bash
 git clone <repository-url>
-cd ai-flashcard-generator
+cd flashlearn
 make install
 cp .env.example .env
 # Edit .env with your API keys
@@ -32,7 +32,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 ### Using npm
 ```bash
 git clone <repository-url>
-cd ai-flashcard-generator
+cd flashlearn
 npm install
 cp .env.example .env
 # Edit .env with your API keys
@@ -85,7 +85,7 @@ Before you begin, ensure you have the following installed:
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd ai-flashcard-generator
+      cd flashlearn
    ```
 
 2. **Install dependencies**
@@ -127,7 +127,7 @@ Follow the same steps but replace `make install` with `npm install`.
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd ai-flashcard-generator
+      cd flashlearn
    ```
 
 2. **Set up environment variables**
@@ -177,7 +177,7 @@ make docker-up
 ## 📁 Project Structure
 
 ```
-ai-flashcard-generator/
+flashlearn/
 ├── public/                 # Static frontend files
 │   ├── index.html         # Main HTML file with Tailwind CSS
 │   ├── script.js          # Frontend JavaScript logic
