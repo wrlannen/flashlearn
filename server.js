@@ -154,6 +154,10 @@ function logEstimatedCost({ provider, providerUsage, loggerInstance }) {
     loggerInstance.info(`[COST] Provider: ${provider}`);
     loggerInstance.info(`[COST] Usage: ${providerUsage.inputTokens} input tokens, ${providerUsage.outputTokens} output tokens`);
     loggerInstance.info(`[COST] Estimated Cost: $${totalCost.toFixed(6)}`);
+    if (totalCost > 0) {
+        const perDollar = Math.floor(1 / totalCost);
+        loggerInstance.info(`[COST] For $1 you could generate this ${perDollar} times`);
+    }
 }
 
 async function createGeminiTextIterator({ topic, contextString, providerUsage, loggerInstance }) {
