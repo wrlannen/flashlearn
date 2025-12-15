@@ -31,8 +31,16 @@ const logger = createLogger();
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
+// Security: Limit request body size to prevent DoS
+app.use(express.json({ limit: '10kb' }));
+
+// Security: Configure CORS properly
+const corsOptions = {
+    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+};
+app.use(cors(corsOptions));
 app.use(express.static('public'));
 
 function createRequestLoggingMiddleware(loggerInstance) {
@@ -182,7 +190,7 @@ async function createGeminiTextIterator({ topic, contextString, providerUsage, l
                     Required properties per object:
                     - "front": Question/Concept
                     - "back": Explanation (2-4 sentences)
-                    - "code": Optional code snippet
+                    - "code": Code snippet (HIGHLY ENCOURAGED - include whenever the topic involves programming, algorithms, data structures, technical implementations, frameworks, libraries, or anything that can be demonstrated with code. Use real, practical examples)
                     
                     ${contextString}`
     });
@@ -208,7 +216,7 @@ async function createOpenAiTextIterator({ topic, contextString, providerUsage, l
         throw new Error('OPENAI_API_KEY missing');
     }
 
-    const model = process.env.OPENAI_MODEL || "gpt-5.2";
+    const model = process.env.OPENAI_MODEL || "gpt-4o";
     loggerInstance.info(`Calling OpenAI API with model: ${model}`);
 
     const openaiStream = await openai.chat.completions.create({
@@ -221,7 +229,7 @@ async function createOpenAiTextIterator({ topic, contextString, providerUsage, l
                         For each card:
                         1. "front": A clear, thought-provoking question or concept name.
                         2. "back": A clear, concise explanation (2-4 sentences). Focus on the core concept immediately. Break into paragraphs if needed.
-                        3. "code": (Conditional) ONLY provide this if the topic is explicitly technical matching programming/math/tools. Otherwise leave empty string "".
+                        3. "code": (HIGHLY ENCOURAGED) Provide a practical code example whenever the topic involves programming, algorithms, data structures, technical implementations, frameworks, libraries, APIs, or anything that can be demonstrated with code. Use real-world, working examples. Only leave this empty for purely conceptual/theoretical topics.
 
                         IMPORTANT: You must stream the response as Newline Delimited JSON (NDJSON).
                         Each line must be a valid, standalone JSON object representing ONE flashcard.
@@ -272,16 +280,88 @@ process.on('unhandledRejection', (reason, promise) => {
     logger.error('UNHANDLED REJECTION:', reason);
 });
 
-app.post('/api/generate-cards', async (req, res) => {
+// Simple rate limiting middleware
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 20; // 20 requests per minute
+
+function rateLimitMiddleware(req, res, next) {
+    const identifier = req.ip || req.connection.remoteAddress || 'unknown';
+    const now = Date.now();
+    
+    if (!rateLimitMap.has(identifier)) {
+        rateLimitMap.set(identifier, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+        return next();
+    }
+    
+    const rateData = rateLimitMap.get(identifier);
+    
+    if (now > rateData.resetTime) {
+        rateLimitMap.set(identifier, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+        return next();
+    }
+    
+    if (rateData.count >= MAX_REQUESTS_PER_WINDOW) {
+        logger.warn(`Rate limit exceeded for ${identifier}`);
+        return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+    }
+    
+    rateData.count++;
+    next();
+}
+
+// Clean up old rate limit entries periodically
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of rateLimitMap.entries()) {
+        if (now > value.resetTime) {
+            rateLimitMap.delete(key);
+        }
+    }
+}, RATE_LIMIT_WINDOW);
+
+app.post('/api/generate-cards', rateLimitMiddleware, async (req, res) => {
     logger.info('Received request to /api/generate-cards');
     try {
         const { topic, context } = req.body;
         logger.info(`Request body topic: ${topic}`);
         if (context) logger.info(`Context provided with ${context.length} existing cards.`);
 
+        // Security: Validate topic input
         if (!topic) {
             logger.warn('Topic is missing in request body');
             return res.status(400).json({ error: 'Topic is required' });
+        }
+
+        if (typeof topic !== 'string') {
+            logger.warn('Topic is not a string');
+            return res.status(400).json({ error: 'Topic must be a string' });
+        }
+
+        if (topic.trim().length === 0) {
+            logger.warn('Topic is empty');
+            return res.status(400).json({ error: 'Topic cannot be empty' });
+        }
+
+        if (topic.length > 500) {
+            logger.warn('Topic is too long');
+            return res.status(400).json({ error: 'Topic must be less than 500 characters' });
+        }
+
+        // Security: Validate context if provided
+        if (context !== undefined) {
+            if (!Array.isArray(context)) {
+                logger.warn('Context is not an array');
+                return res.status(400).json({ error: 'Context must be an array' });
+            }
+            if (context.length > 100) {
+                logger.warn('Context array is too large');
+                return res.status(400).json({ error: 'Context cannot exceed 100 items' });
+            }
+            if (!context.every(item => typeof item === 'string' && item.length < 200)) {
+                logger.warn('Invalid context items');
+                return res.status(400).json({ error: 'All context items must be strings under 200 characters' });
+            }
         }
 
         const contextString = buildStudiedConceptsContextString(context);

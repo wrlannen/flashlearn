@@ -47,8 +47,6 @@ Visit [http://localhost:3000](http://localhost:3000)
 - **🎨 Beautiful Dark Mode UI**: Modern, premium interface built with Tailwind CSS
 - **🔄 Interactive Flip Animation**: Smooth card flip effects for an engaging study experience
 - **📊 Progress Tracking**: Keep track of how many cards you've studied
-- **🔍 Search & Filter**: Quickly find specific flashcards in your collection
-- **💾 Local Storage**: Your flashcards are saved locally in your browser
 - **⚡ Real-time Streaming**: Fast flashcard creation with streaming responses
 - **📱 Responsive Design**: Works seamlessly on desktop and mobile devices
 - **💰 Cost Tracking**: Monitor API usage and estimated costs
@@ -106,7 +104,7 @@ Before you begin, ensure you have the following installed:
    ```env
    AI_PROVIDER=openai
    OPENAI_API_KEY=your_openai_api_key_here
-   OPENAI_MODEL=gpt-5.2
+   OPENAI_MODEL=gpt-4o
    PORT=3000
    ```
 
@@ -241,7 +239,7 @@ Generates flashcards for a given topic using your configured AI provider (OpenAI
 |----------|----------|---------|-------------|
 | `AI_PROVIDER` | ❌ No | `openai` | 'openai' or 'gemini' |
 | `OPENAI_API_KEY` | ✅ if openai | - | Your OpenAI API key |
-| `OPENAI_MODEL` | ❌ No | `gpt-5.2` | OpenAI model to use |
+| `OPENAI_MODEL` | ❌ No | `gpt-4o` | OpenAI model to use |
 | `GEMINI_API_KEY` | ✅ if gemini | - | Your Google Gemini API key |
 | `GEMINI_MODEL` | ❌ No | `gemini-2.5-flash` | Gemini model to use |
 | `PORT` | ❌ No | `3000` | Server port |
@@ -298,7 +296,21 @@ The test suite includes:
 
 All tests run in under 500ms with 100% pass rate.
 
-## 🐳 Docker Commands
+## � Security
+
+FlashLearn implements multiple security measures to protect your application and data:
+
+- **Input Validation**: All user inputs are validated and sanitized
+- **Rate Limiting**: IP-based rate limiting (20 requests/minute) prevents abuse
+- **XSS Protection**: All content is properly escaped to prevent cross-site scripting
+- **API Key Security**: API keys stored securely in environment variables
+- **Docker Security**: Non-root user, multi-stage builds, health checks
+- **Error Handling**: Comprehensive logging without exposing sensitive details
+- **CORS Configuration**: Configurable origins for production deployments
+
+For detailed security information and production deployment recommendations, see [SECURITY.md](SECURITY.md).
+
+## �🐳 Docker Commands
 
 All Docker commands are available through the Makefile:
 

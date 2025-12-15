@@ -351,20 +351,20 @@ function renderCurrentCard() {
         let fontSize;
         
         if (isFront) {
-            // Front card title sizing
-            if (length < 15) fontSize = 'text-5xl md:text-7xl';
-            else if (length < 30) fontSize = 'text-4xl md:text-6xl';
-            else if (length < 50) fontSize = 'text-3xl md:text-5xl';
-            else if (length < 80) fontSize = 'text-2xl md:text-4xl';
-            else if (length < 120) fontSize = 'text-xl md:text-3xl';
-            else fontSize = 'text-lg md:text-2xl';
+            // Front card title sizing - very large for maximum visibility
+            if (length < 15) fontSize = 'text-6xl md:text-8xl';
+            else if (length < 30) fontSize = 'text-5xl md:text-7xl';
+            else if (length < 50) fontSize = 'text-4xl md:text-6xl';
+            else if (length < 80) fontSize = 'text-3xl md:text-5xl';
+            else if (length < 120) fontSize = 'text-2xl md:text-4xl';
+            else fontSize = 'text-xl md:text-3xl';
         } else {
-            // Back card content sizing - more aggressive sizing
-            if (length < 80) fontSize = 'text-2xl md:text-4xl';
-            else if (length < 200) fontSize = 'text-xl md:text-3xl';
-            else if (length < 400) fontSize = 'text-lg md:text-2xl';
-            else if (length < 700) fontSize = 'text-base md:text-xl';
-            else fontSize = 'text-sm md:text-base';
+            // Back card content sizing - very aggressive for maximum readability
+            if (length < 150) fontSize = 'text-3xl md:text-5xl';
+            else if (length < 350) fontSize = 'text-2xl md:text-4xl';
+            else if (length < 550) fontSize = 'text-xl md:text-3xl';
+            else if (length < 800) fontSize = 'text-lg md:text-2xl';
+            else fontSize = 'text-base md:text-xl';
         }
         
         console.log(`Text length: ${length}, isFront: ${isFront}, fontSize: ${fontSize}`);
