@@ -31,6 +31,9 @@ const logger = createLogger();
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Trust proxy for correct IP resolution behind load balancers/proxies
+app.set('trust proxy', 1);
+
 // Security: Limit request body size to prevent DoS
 app.use(express.json({ limit: '10kb' }));
 
@@ -73,6 +76,9 @@ function getAiProvider() {
 function setStreamingHeaders(res) {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable Nginx buffering
 }
 
 function cleanPossibleMarkdownJsonFence(text) {
