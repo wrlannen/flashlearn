@@ -96,6 +96,7 @@ async function streamNdjsonFromTextIterator({ iterator, res, loggerInstance }) {
     let buffer = "";
     let firstChunkReceived = false;
     const cardCountRef = { count: 0 };
+    let pendingBuffer = "";
 
     for await (const content of iterator) {
         if (!firstChunkReceived) {
@@ -112,22 +113,62 @@ async function streamNdjsonFromTextIterator({ iterator, res, loggerInstance }) {
 
             if (!line) continue;
 
-            loggerInstance.debug(`Processing line length: ${line.length}`);
-            try {
-                parseAndWriteNdjsonLine({ line, res, loggerInstance, cardCountRef });
-            } catch (e) {
-                loggerInstance.warn('Skipping invalid JSON line/segment: ' + line.substring(0, 50));
+            const cleanedLine = cleanPossibleMarkdownJsonFence(line);
+            if (!cleanedLine) continue;
+
+            if (pendingBuffer) {
+                pendingBuffer += " " + cleanedLine;
+                try {
+                    // Check if pendingBuffer is now a valid JSON
+                    // We use parseAndWriteNdjsonLine which does the check and write
+                    // But parseAndWriteNdjsonLine throws if invalid, so we catch it
+                    parseAndWriteNdjsonLine({ line: pendingBuffer, res, loggerInstance, cardCountRef });
+                    pendingBuffer = "";
+                } catch (e) {
+                    // Still invalid, continue accumulating
+                }
+            } else {
+                try {
+                    // Try parsing the line alone
+                    parseAndWriteNdjsonLine({ line: cleanedLine, res, loggerInstance, cardCountRef });
+                } catch (e) {
+                    // Failed to parse single line.
+                    // If it starts with {, assume it's start of a multi-line object
+                    if (cleanedLine.startsWith('{')) {
+                        pendingBuffer = cleanedLine;
+                    } else {
+                        loggerInstance.warn('Skipping invalid JSON line/segment: ' + line.substring(0, 50));
+                    }
+                }
             }
         }
     }
 
+    // Handle remaining buffer
     if (buffer.trim()) {
-        try {
-            const line = buffer.trim();
-            parseAndWriteNdjsonLine({ line, res, loggerInstance, cardCountRef });
-        } catch (e) {
-            loggerInstance.warn('Final buffer content was not valid JSON: ' + buffer.substring(0, 50));
+        const line = buffer.trim();
+        const cleanedLine = cleanPossibleMarkdownJsonFence(line);
+        
+        if (pendingBuffer) {
+             pendingBuffer += " " + cleanedLine;
+             try {
+                 parseAndWriteNdjsonLine({ line: pendingBuffer, res, loggerInstance, cardCountRef });
+             } catch(e) {
+                 loggerInstance.warn('Final buffer content was not valid JSON: ' + pendingBuffer.substring(0, 50));
+             }
+        } else {
+            try {
+                parseAndWriteNdjsonLine({ line: cleanedLine, res, loggerInstance, cardCountRef });
+            } catch (e) {
+                loggerInstance.warn('Final buffer content was not valid JSON: ' + line.substring(0, 50));
+            }
         }
+    } else if (pendingBuffer) {
+         try {
+             parseAndWriteNdjsonLine({ line: pendingBuffer, res, loggerInstance, cardCountRef });
+         } catch(e) {
+             loggerInstance.warn('Final pending buffer content was not valid JSON: ' + pendingBuffer.substring(0, 50));
+         }
     }
 
     loggerInstance.info('Stream completed');
